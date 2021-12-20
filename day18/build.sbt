@@ -9,6 +9,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "day18",
     libraryDependencies += betterFiles,
+    libraryDependencies += parserCombinators,
     libraryDependencies += scalaTest % Test
   )
 
