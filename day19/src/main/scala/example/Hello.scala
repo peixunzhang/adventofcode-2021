@@ -7,9 +7,9 @@ object Hello extends App {
     def parseScanner(ls: List[String]): (Scanner, List[String]) = {
       val scanner = Scanner {
         ls.tail.takeWhile(s => !s.startsWith("---")).filter(_.nonEmpty).map(_.split(",").toList match {
-          case x :: y :: z :: Nil => Beacon(x.toInt, y.toInt, z.toInt)
+          case x :: y :: z :: Nil => V3(x.toInt, y.toInt, z.toInt)
           case _ => ???
-        })
+        }).toSet
       }
       (scanner, ls.tail.dropWhile(l => !l.startsWith("---")))
     }
@@ -21,51 +21,48 @@ object Hello extends App {
   println(scanners.head.mergeAll(scanners.tail).beacons.size)
 }
 
-final case class Beacon(x: Int, y: Int, z: Int) { self =>
-  def rotations: List[Beacon] = List(
-    Beacon(x, y, z), Beacon(y, z, x), Beacon(z, x, y),
-    Beacon(-x, z, y), Beacon(z, y, -x), Beacon(y, -x, z),
-    Beacon(x, z, -y), Beacon(z, -y, x), Beacon(-y, x, z),
-    Beacon(x, -z, y), Beacon(-z, y, x), Beacon(y, x, -z),
-    Beacon(-x, -y, z), Beacon(-y, z, -x), Beacon(z, -x, -y),
-    Beacon(-x, y, -z), Beacon(y, -z, -x), Beacon(-z, -x, y),
-    Beacon(x, -y, -z), Beacon(-y, -z, x), Beacon(-z, x, -y),
-    Beacon(-x, -z, -y), Beacon(-z, -y, -x), Beacon(-y, -x, -z),
+final case class V3(x: Int, y: Int, z: Int) { self =>
+  def rotations: List[V3] = List(
+    V3(x, y, z), V3(y, z, x), V3(z, x, y),
+    V3(-x, z, y), V3(z, y, -x), V3(y, -x, z),
+    V3(x, z, -y), V3(z, -y, x), V3(-y, x, z),
+    V3(x, -z, y), V3(-z, y, x), V3(y, x, -z),
+    V3(-x, -y, z), V3(-y, z, -x), V3(z, -x, -y),
+    V3(-x, y, -z), V3(y, -z, -x), V3(-z, -x, y),
+    V3(x, -y, -z), V3(-y, -z, x), V3(-z, x, -y),
+    V3(-x, -z, -y), V3(-z, -y, -x), V3(-y, -x, -z),
   )
-  def -(that: Beacon): Beacon =
-    Beacon(x - that.x, y - that.y, z - that.z)
 
-  def +(that: Beacon): Beacon =
-    Beacon(x + that.x, y + that.y, z + that.z)
+  def -(that: V3): V3 =
+    V3(x - that.x, y - that.y, z - that.z)
 
-  def reverse: Beacon =
-    Beacon(-x, -y, -z)
-
-  def isSameOrReverse(that: Beacon) = self == that || self.reverse == that
+  def +(that: V3): V3 =
+    V3(x + that.x, y + that.y, z + that.z)
 }
 
-final case class Scanner(beacons: List[Beacon]) { self =>
+final case class Scanner(beacons: Set[V3]) { self =>
   lazy val rotations: List[Scanner] =
-    beacons.map(_.rotations).transpose.map(Scanner(_))
+    beacons.toList.map(_.rotations).transpose.map(rotated => Scanner(rotated.toSet))
 
-  lazy val beaconVectors: List[Beacon] =
+  lazy val beaconVectors: Set[V3] = {
     for {
       first <- beacons
       second <- beacons.filter(_ != first)
     } yield first - second
+  }.toSet
 
-  def applyCorrection(correction: Beacon): Scanner =
-    Scanner(beacons.map(_ + correction))
+  def translate(value: V3): Scanner =
+    Scanner(beacons.map(_ + value))
 
   def merge(that: Scanner): Option[Scanner] =
-    that.alignTo(self).fold[Option[Scanner]](None)(alligned => Some(Scanner((self.beacons ++ alligned.beacons).distinct)))
+    that.alignTo(self).fold[Option[Scanner]](None)(alligned => Some(Scanner((self.beacons ++ alligned.beacons))))
 
   def mergeAll(scanners: List[Scanner]): Scanner =
     mergeAllHelper(scanners, Nil)
 
   private def mergeAllHelper(scanners: List[Scanner], attempted: List[Scanner]): Scanner =
     scanners match {
-      case x :: xs => merge(x).fold(mergeAllHelper(xs, x :: attempted))(_.mergeAllHelper(xs, attempted))
+      case x :: xs => self.merge(x).fold(mergeAllHelper(xs, x :: attempted))(_.mergeAllHelper(xs, attempted))
       case Nil =>
         println(attempted.size)
         if (attempted.nonEmpty) mergeAllHelper(attempted, Nil) else self
@@ -73,19 +70,19 @@ final case class Scanner(beacons: List[Beacon]) { self =>
 
   def alignTo(that: Scanner): Option[Scanner] = {
     rotations
-      .find(_.beaconVectors.count(beacon => that.beaconVectors.exists(_.isSameOrReverse(beacon))) >= 132)
+      .filter(_.beaconVectors.intersect(that.beaconVectors).size >= 132)
       .flatMap { rotation =>
         rotation.beacons.flatMap { beacon =>
           that.beacons.flatMap { thatBeacon =>
-            val corrected = rotation.applyCorrection(thatBeacon - beacon)
+            val corrected = rotation.translate(thatBeacon - beacon)
             if (corrected.beacons.intersect(that.beacons).size >= 12) Some(corrected) else None
           }
-        }.headOption
-      }
+        }
+      }.headOption
   }
 }
 object Scanner {
-  def apply(beacons: Beacon*): Scanner =
-    Scanner(beacons.toList)
+  def apply(beacons: V3*): Scanner =
+    Scanner(beacons.toSet)
 }
 
