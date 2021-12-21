@@ -3,14 +3,15 @@ package example
 import better.files.Resource
 
 object Hello extends App {
-  def parseData(input: String): List[Scanner] = {
-    def parseScanner(ls: List[String]): (Scanner, List[String]) = {
-      val scanner = Scanner {
+  def parseData(input: String): List[ScannerGroup] = {
+    def parseScanner(ls: List[String]): (ScannerGroup, List[String]) = {
+      val scanner = ScannerGroup(
         ls.tail.takeWhile(s => !s.startsWith("---")).filter(_.nonEmpty).map(_.split(",").toList match {
           case x :: y :: z :: Nil => V3(x.toInt, y.toInt, z.toInt)
           case _ => ???
-        }).toSet
-      }
+        }).toSet,
+        Set(V3(0, 0, 0))
+      )
       (scanner, ls.tail.dropWhile(l => !l.startsWith("---")))
     }
     val lines = input.split("\n").toList
@@ -18,7 +19,13 @@ object Hello extends App {
   }
 
   val scanners = parseData(Resource.getAsString("input.txt"))
-  println(scanners.head.mergeAll(scanners.tail).beacons.size)
+  val alligned = scanners.head.mergeAll(scanners.tail).scanners.toList
+  val distances = for {
+    first <- alligned
+    second <- alligned.filter(_ != first)
+  } yield (first - second).manhattanDistance
+
+  println(distances.max)
 }
 
 final case class V3(x: Int, y: Int, z: Int) { self =>
@@ -38,11 +45,17 @@ final case class V3(x: Int, y: Int, z: Int) { self =>
 
   def +(that: V3): V3 =
     V3(x + that.x, y + that.y, z + that.z)
+
+  def manhattanDistance: Int =
+    Math.abs(x) + Math.abs(y) + Math.abs(z)
 }
 
-final case class Scanner(beacons: Set[V3]) { self =>
-  lazy val rotations: List[Scanner] =
-    beacons.toList.map(_.rotations).transpose.map(rotated => Scanner(rotated.toSet))
+
+final case class ScannerGroup(beacons: Set[V3], scanners: Set[V3]) { self =>
+  lazy val rotations: List[ScannerGroup] =
+    beacons.toList.map(_.rotations).transpose.zip(scanners.toList.map(_.rotations).transpose).map { case (rotatedBeacons, rotatedScanners) =>
+      ScannerGroup(rotatedBeacons.toSet, rotatedScanners.toSet)
+    }
 
   lazy val beaconVectors: Set[V3] = {
     for {
@@ -51,38 +64,38 @@ final case class Scanner(beacons: Set[V3]) { self =>
     } yield first - second
   }.toSet
 
-  def translate(value: V3): Scanner =
-    Scanner(beacons.map(_ + value))
+  def translate(value: V3): ScannerGroup =
+    ScannerGroup(beacons.map(_ + value), scanners.map(_ + value))
 
-  def merge(that: Scanner): Option[Scanner] =
-    that.alignTo(self).fold[Option[Scanner]](None)(alligned => Some(Scanner((self.beacons ++ alligned.beacons))))
-
-  def mergeAll(scanners: List[Scanner]): Scanner =
-    mergeAllHelper(scanners, Nil)
-
-  private def mergeAllHelper(scanners: List[Scanner], attempted: List[Scanner]): Scanner =
-    scanners match {
-      case x :: xs => self.merge(x).fold(mergeAllHelper(xs, x :: attempted))(_.mergeAllHelper(xs, attempted))
-      case Nil =>
-        println(attempted.size)
-        if (attempted.nonEmpty) mergeAllHelper(attempted, Nil) else self
+  def merge(that: ScannerGroup): Option[ScannerGroup] =
+    that.alignTo(self).fold[Option[ScannerGroup]](None) { alligned =>
+      Some(ScannerGroup(self.beacons ++ alligned.beacons, self.scanners ++ alligned.scanners))
     }
 
-  def alignTo(that: Scanner): Option[Scanner] = {
+  def mergeAll(scanners: List[ScannerGroup]): ScannerGroup =
+    mergeAllHelper(scanners, Nil)
+
+  private def mergeAllHelper(scanners: List[ScannerGroup], attempted: List[ScannerGroup]): ScannerGroup =
+    scanners match {
+      case x :: xs => self.merge(x).fold(mergeAllHelper(xs, x :: attempted))(_.mergeAllHelper(xs, attempted))
+      case Nil => if (attempted.nonEmpty) mergeAllHelper(attempted, Nil) else self
+    }
+
+  def alignTo(that: ScannerGroup): Option[ScannerGroup] = {
     rotations
       .filter(_.beaconVectors.intersect(that.beaconVectors).size >= 132)
-      .flatMap { rotation =>
-        rotation.beacons.flatMap { beacon =>
+      .flatMap { candidate =>
+        candidate.beacons.flatMap { beacon =>
           that.beacons.flatMap { thatBeacon =>
-            val corrected = rotation.translate(thatBeacon - beacon)
-            if (corrected.beacons.intersect(that.beacons).size >= 12) Some(corrected) else None
+            val translated = candidate.translate(thatBeacon - beacon)
+            if (translated.beacons.intersect(that.beacons).size >= 12) Some(translated) else None
           }
         }
       }.headOption
   }
 }
 object Scanner {
-  def apply(beacons: V3*): Scanner =
-    Scanner(beacons.toSet)
+  def apply(beacons: V3*): ScannerGroup =
+    ScannerGroup(beacons.toSet, Set(V3(0, 0, 0)))
 }
 
