@@ -19,7 +19,7 @@ object Hello extends App {
   }
 
   val scanners = parseData(Resource.getAsString("input.txt"))
-  val alligned = scanners.head.mergeAll(scanners.tail).scanners.toList
+  val alligned = scanners.head.mergeAll(scanners.tail).scanners
   val distances = for {
     first <- alligned
     second <- alligned.filter(_ != first)
@@ -68,8 +68,8 @@ final case class ScannerGroup(beacons: Set[V3], scanners: Set[V3]) { self =>
     ScannerGroup(beacons.map(_ + value), scanners.map(_ + value))
 
   def merge(that: ScannerGroup): Option[ScannerGroup] =
-    that.alignTo(self).fold[Option[ScannerGroup]](None) { alligned =>
-      Some(ScannerGroup(self.beacons ++ alligned.beacons, self.scanners ++ alligned.scanners))
+    that.alignTo(self).map { alligned =>
+      ScannerGroup(self.beacons ++ alligned.beacons, self.scanners ++ alligned.scanners)
     }
 
   def mergeAll(scanners: List[ScannerGroup]): ScannerGroup =
@@ -81,7 +81,7 @@ final case class ScannerGroup(beacons: Set[V3], scanners: Set[V3]) { self =>
       case Nil => if (attempted.nonEmpty) mergeAllHelper(attempted, Nil) else self
     }
 
-  def alignTo(that: ScannerGroup): Option[ScannerGroup] = {
+  private def alignTo(that: ScannerGroup): Option[ScannerGroup] = {
     rotations
       .filter(_.beaconVectors.intersect(that.beaconVectors).size >= 132)
       .flatMap { candidate =>
@@ -98,4 +98,3 @@ object Scanner {
   def apply(beacons: V3*): ScannerGroup =
     ScannerGroup(beacons.toSet, Set(V3(0, 0, 0)))
 }
-
