@@ -84,11 +84,11 @@ object Hello extends App {
       (a, b) => if (a == b) 1 else 0
     )
 
-  def runExpr(instructions: List[Instruction], input: List[Int]): State[Expr] =
+  def runExpr(instructions: List[Instruction]): State[Expr] =
     interpret[Expr](
       instructions,
-      input,
-      Expr.VarRef(_),
+      (1 to 99).toList,
+      _ => Expr.Constant(0),
       Expr.Constant(_),
       Expr.Input(_),
       _ + _,
@@ -98,9 +98,11 @@ object Hello extends App {
       _ eql _
     )
 
-  val data = parseData(Resource.getAsString("input.txt"))
+  val data = parseData(Resource.getAsString("input.txt")).take(36)
+  val expr = runExpr(data).get(Variable.Z)
+  println(expr.eval(Map(1 -> 9)))
   //vprintln(findHighest(data))
-  println(runExpr(data, List(1)).get(Variable.Z))
+  // println(runExpr(data).get(Variable.Z).eval(Map(1 -> 9)))
   // val expr = runExpr(data, List(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)).get(Variable.X)
   // println(expr)
   // println(run(data, List(1, 3, 5, 7, 9, 2, 4, 6, 8, 9, 9, 9, 9, 9)).get(Variable.Z))
@@ -140,7 +142,7 @@ sealed trait Expr { self =>
 
   def findInputRefs: Set[Int] =
     self match {
-      case Input(v) => Set(v)
+      case Input(n) => Set(n)
       case Add(a, b) => a.findInputRefs ++ b.findInputRefs
       case Mul(a, b) => a.findInputRefs ++ b.findInputRefs
       case Div(a, b) => a.findInputRefs ++ b.findInputRefs
@@ -150,8 +152,52 @@ sealed trait Expr { self =>
       case VarRef(_) => Set.empty
     }
 
+  def eval(inputs: Map[Int, Int]): Either[Expr, Int] =
+    self match {
+      case in @ Input(v) => inputs.get(v).fold[Either[Expr, Int]](Left(in))(Right(_))
+      case Add(a, b) =>
+        (a.eval(inputs), b.eval(inputs)) match {
+          case (Left(a), Left(b)) => Left(a + b)
+          case (Left(a), Right(b)) => Left(a + Constant(b))
+          case (Right(a), Left(b)) => Left(Constant(a) + b)
+          case (Right(a), Right(b)) => Right(a + b)
+        }
+      case Mul(a, b) =>
+        (a.eval(inputs), b.eval(inputs)) match {
+          case (Left(a), Left(b)) => Left(a * b)
+          case (Left(a), Right(b)) => Left(a * Constant(b))
+          case (Right(a), Left(b)) => Left(Constant(a) * b)
+          case (Right(a), Right(b)) => Right(a * b)
+        }
+      case Div(a, b) =>
+        (a.eval(inputs), b.eval(inputs)) match {
+          case (Left(a), Left(b)) => Left(a / b)
+          case (Left(a), Right(b)) => Left(a / Constant(b))
+          case (Right(a), Left(b)) => Left(Constant(a) / b)
+          case (Right(a), Right(b)) => Right(a / b)
+        }
+      case Mod(a, b) =>
+        (a.eval(inputs), b.eval(inputs)) match {
+          case (Left(a), Left(b)) => Left(a % b)
+          case (Left(a), Right(b)) => Left(a % Constant(b))
+          case (Right(a), Left(b)) => Left(Constant(a) % b)
+          case (Right(a), Right(b)) => Right(a % b)
+        }
+      case Constant(c) => Right(c)
+      case Eql(a, b) =>
+        (a.eval(inputs), b.eval(inputs)) match {
+          case (Left(a), Left(b)) => Left(a eql b)
+          case (Left(a), Right(b)) => Left(a eql Constant(b))
+          case (Right(a), Left(b)) => Left(Constant(a) eql b)
+          case (Right(a), Right(b)) => Right(if (a == b) 1 else 0)
+        }
+      case vr @ VarRef(_) => Left(vr)
+    }
+
+
   def +(that: Expr) : Expr =
     (self, that) match {
+      case (Constant(s), Constant(t)) => Constant(s + t)
       case (s, Constant(0)) => s
       case (Constant(0), t) => t
       case (s, t) if s == t =>
@@ -161,6 +207,7 @@ sealed trait Expr { self =>
 
   def *(that: Expr) : Expr =
     (self, that) match {
+      case (Constant(s), Constant(t)) => Constant(s * t)
       case (s, Constant(1)) => s
       case (Constant(1), t) => t
       case (_, Constant(0)) => Constant(0)
@@ -170,12 +217,14 @@ sealed trait Expr { self =>
 
   def /(that: Expr) : Expr =
     (self, that) match {
+      case (Constant(s), Constant(t)) => Constant(s / t)
       case (s, Constant(1)) => s
       case (s, t) => Div(s, t)
     }
 
   def %(that: Expr) : Expr =
     (self, that) match {
+      case (Constant(s), Constant(t)) => Constant(s % t)
       case (_, Constant(0)) => Constant(0)
       case (Constant(0), _) => Constant(0)
       case (s, t) => Mod(s, t)
@@ -197,8 +246,8 @@ sealed trait Expr { self =>
 
   private def showHelper(sb: StringBuilder): Unit =
     self match {
-      case Constant(value) => sb.addAll(s"Constant($value)")
-      case Input(value) => sb.addAll(s"Input($value)")
+      case Constant(value) => sb.addAll(value.toString)
+      case Input(n) => sb.addAll(s"I$n")
       case Add(a, b) =>
         sb.addOne('(')
         a.showHelper(sb)
@@ -235,7 +284,7 @@ sealed trait Expr { self =>
 }
 object Expr {
   final case class Constant(value: Int) extends Expr
-  final case class Input(value: Int) extends Expr
+  final case class Input(n: Int) extends Expr
   final case class Add(a: Expr, b: Expr) extends Expr
   final case class Mul(a: Expr, b: Expr) extends Expr
   final case class Div(a: Expr, b: Expr) extends Expr
