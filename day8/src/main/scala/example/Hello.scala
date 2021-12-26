@@ -12,15 +12,28 @@ object Hello extends App {
       case other => throw new IllegalStateException()
     })
   }
+
+  def decode(parsed: List[(List[Digit], List[Digit])]): List[Int] = {
+    parsed.map {
+      case (input, output) =>
+        val display = Display.fromDigits(input)
+        display.decodeMany(output)
+    }
+  }
+
+
   def getNumber(parsed: List[(List[Digit], List[Digit])]): Int = {
     val decoded = parsed.map {
-      case (input, output) => 
+      case (input, output) =>
         val display = Display.fromDigits(input)
         display.decodeMany(output)
     }
     decoded.sum
   }
- println(getNumber(parseData(Resource.getAsString("input.txt"))))
+
+  val decoded = decode(parseData(Resource.getAsString("input.txt")))
+  println(s"part1: ${decoded.flatMap(_.toString().toList.map(_.asDigit).filter(Set(1, 4, 7, 8).contains)).size}")
+  println(s"part2: ${decoded.sum}")
 }
 
 final case class Display(value: Map[Digit, Int]) {

@@ -57,14 +57,14 @@ object Hello extends App {
   }
 
   def score(brakets: List[Char]): Long = {
-    brakets.foldLeft(0L) { (n, c) => 
+    brakets.foldLeft(0L) { (n, c) =>
       val score = c match {
         case '(' => 1
         case '[' => 2
         case '{' => 3
         case '<' => 4
         case _ => 0
-      } 
+      }
       (n * 5) + score
     }
   }
@@ -77,6 +77,8 @@ object Hello extends App {
   def errorSum(input: List[List[Char]]): Int = {
     input.foldLeft(0)((a, b) => check(b) + a)
   }
-  
-  println(middle(parseData(Resource.getAsString("input.txt"))))
+
+  val data = parseData(Resource.getAsString("input.txt"))
+  println(s"part1: ${errorSum(data)}")
+  println(s"part2: ${middle(data)}")
 }

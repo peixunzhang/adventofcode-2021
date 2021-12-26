@@ -23,7 +23,7 @@ final case class Polymer(polymer: Map[String, Long], duplicate: Map[Char, Long],
   }
 
   def step: Polymer = {
-    val (np, nd) = polymer.toList.foldLeft[(Map[String, Long], Map[Char, Long])]((Map.empty, duplicate)){ case ((np, nd), (pair, count)) => 
+    val (np, nd) = polymer.toList.foldLeft[(Map[String, Long], Map[Char, Long])]((Map.empty, duplicate)){ case ((np, nd), (pair, count)) =>
       rules.get(pair).fold((np.addToKey(pair, count), nd)) { c =>
         val nnd = nd.addToKey(c, count)
         val newPairs = pair.patch(1, c.toString(), 0).sliding(2)

@@ -10,18 +10,30 @@ object Hello extends App {
     }.toList
     (nums, boards)
   }
-  def play(nums: List[Int], boards: List[Board], lastWinner: Option[Int]): Option[Int] = {
+
+  def getFirstWinner(nums: List[Int], boards: List[Board]): Option[Int] =
+    (nums, boards) match {
+      case (Nil, _) | (_, Nil) => None
+      case (x :: xs, _) =>
+        val marked = boards.map(_.mark(x))
+        val winner = marked.find(_.hasWon).map(_.score * x)
+        winner orElse getFirstWinner(xs, marked)
+    }
+
+  def getLastWinner(nums: List[Int], boards: List[Board], lastWinner: Option[Int]): Option[Int] = {
     (nums, boards) match {
       case (Nil, _) | (_, Nil) => lastWinner
-      case (x :: xs, _) => 
+      case (x :: xs, _) =>
         val marked = boards.map(_.mark(x))
         val (won, notWonYet) = marked.partition(_.hasWon)
         val currentWinner = won.map(_.score * x).maxOption.orElse(lastWinner)
-        play(xs, notWonYet, currentWinner)
+        getLastWinner(xs, notWonYet, currentWinner)
     }
   }
   val (nums, boards) = parseData(Resource.getAsString("input.txt"))
-  println(play(nums, boards, None))
+
+  println(s"part1: ${getFirstWinner(nums, boards)}")
+  println(s"part2: ${getLastWinner(nums, boards, None)}")
 }
 
 final case class Board (value: List[List[(Int, Boolean)]]) {
@@ -42,4 +54,4 @@ final case class Board (value: List[List[(Int, Boolean)]]) {
   override def toString(): String =
     value.map(_.mkString(" ")).mkString("\n")
 }
-  
+

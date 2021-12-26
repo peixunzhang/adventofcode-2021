@@ -15,23 +15,24 @@ object Hello extends App {
   }
 
   val (enhancementString, grid) = parseData(Resource.getAsString("input.txt"))
-  println(grid.enhanceMany(50, enhancementString).countPixel)
+  println(s"part1: ${grid.enhanceMany(2, enhancementString).countPixel}")
+  println(s"part2: ${grid.enhanceMany(50, enhancementString).countPixel}")
 }
 
 final case class Grid(rows: Vector[Vector[Boolean]], nRows: Int, nCols: Int, background: Boolean) { self =>
   def window(row: Int, col: Int): Int = {
     val values = List(
-      get(row-1, col-1), get(row-1, col), get(row-1, col+1), 
-      get(row, col-1), get(row, col), get(row, col+1), 
+      get(row-1, col-1), get(row-1, col), get(row-1, col+1),
+      get(row, col-1), get(row, col), get(row, col+1),
       get(row+1, col-1), get(row+1, col), get(row+1, col+1)
     )
     val bitString = values.map(if (_) 1 else 0).mkString
     Integer.parseInt(bitString, 2)
   }
-  
-  def get(row: Int, col: Int): Boolean = 
+
+  def get(row: Int, col: Int): Boolean =
     if (row >= 0 && row < nRows && col >= 0 && col < nCols) rows(row)(col) else background
-  
+
   def computeAll(f: (Int, Int) => Boolean): Grid = {
     Grid(
       rows.zipWithIndex.map { case (cols, row) => cols.indices.map(col => f(row, col)).toVector },
@@ -54,12 +55,12 @@ final case class Grid(rows: Vector[Vector[Boolean]], nRows: Int, nCols: Int, bac
     if (background) None else Some(rows.flatten.count(identity))
 
   def enhanceMany(times: Int, enhancement: EnhancementString): Grid = {
-    if (times > 0) 
+    if (times > 0)
       self.applyEnhancement(enhancement).enhanceMany(times-1, enhancement)
     else
       self
   }
-   
+
   override def toString(): String =
     rows.map(_.map(if (_) "#" else ".").mkString).mkString("\n")
 }

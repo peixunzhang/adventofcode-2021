@@ -18,5 +18,7 @@ object Hello extends App {
   def parseData(input: String): List[Int] =
     input.split("\n").toList.map(_.toInt)
 
-  println(processMeasurements(sumOfWindows(parseData(Resource.getAsString("input.txt")))))
+  val data = parseData(Resource.getAsString("input.txt"))
+  println(s"part1: ${processMeasurements(data)}")
+  println(s"part2: ${processMeasurements(sumOfWindows(data))}")
 }

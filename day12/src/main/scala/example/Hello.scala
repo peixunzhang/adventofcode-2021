@@ -4,7 +4,7 @@ import better.files.Resource
 object Hello extends App {
   type Path = List[Cave]
   def parseCave(str: String): Cave = str match {
-    case "start" => Cave.Start
+    case "start"             => Cave.Start
     case "end"               => Cave.End
     case s if s.head.isLower => Cave.Small(s)
     case s                   => Cave.Big(s)
@@ -25,24 +25,24 @@ object Hello extends App {
       }
       .toList
   }
-  def makeMap(connections: List[(Cave, Cave)]): CaveMap = {
 
+  def makeMap(connections: List[(Cave, Cave)]): CaveMap = {
     connections.foldLeft(CaveMap.empty)((a, b) => a.addConnection(b._1, b._2))
   }
-  println(
-    makeMap(parseData(Resource.getAsString("input.txt")))
-      .findPaths(Cave.Start)
-      .length
-  )
+
+  val data = makeMap(parseData(Resource.getAsString("input.txt")))
+  println(s"part1: ${data.findPaths(Cave.Start, revisit = false).length}")
+  println(s"part2: ${data.findPaths(Cave.Start, revisit = true).length}")
+
 }
 
 final case class CaveMap(connections: Map[Cave, Set[Cave]]) {
   def findPaths(
       startPoint: Cave,
       visitedCaves: Set[Cave] = Set.empty,
-      specialCave: Boolean = false
+      revisit: Boolean = true
   ): List[Path] = startPoint match {
-    case Cave.End => 
+    case Cave.End =>
       List(List(Cave.End))
     case _ =>
       val newVisited = startPoint match {
@@ -51,18 +51,18 @@ final case class CaveMap(connections: Map[Cave, Set[Cave]]) {
       }
       connections(startPoint).toList
         .flatMap {
-          case Cave.Start => 
+          case Cave.Start =>
             Nil
           case c @ Cave.Small(_) =>
             val visited = newVisited.contains(c)
-            if (!visited) 
-              findPaths(c, newVisited, specialCave)
-            else if (visited && !specialCave)
-              findPaths(c, newVisited, true)
+            if (!visited)
+              findPaths(c, newVisited, revisit)
+            else if (visited && revisit)
+              findPaths(c, newVisited, false)
             else
               Nil
           case c =>
-            findPaths(c, newVisited, specialCave)
+            findPaths(c, newVisited, revisit)
         }
         .map(startPoint :: _)
   }

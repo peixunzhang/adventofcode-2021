@@ -16,15 +16,20 @@ object Hello extends App {
     (start to end).map(i => (i, cost(i))).minBy(_._2)
 
   def distance(a: Long, b: Long): Long = {
+    Math.abs(b - a)
+  }
+
+  def fancyDistance(a: Long, b: Long): Long = {
     def sumDown(n: Long, acc: Long = 0): Long =
       if (n <= 0) acc else sumDown(n - 1, acc + n)
     sumDown(Math.abs(a - b))
   }
 
-  def fuel(target: Long, crabs: Vector[Long]): Long = {
+  def fuel(target: Long, crabs: Vector[Long], distance: (Long, Long) => Long): Long = {
     crabs.foldLeft(0L)((sum, c) => distance(target, c) + sum)
   }
 
   val crabs = parseData(Resource.getAsString("input.txt"))
-  println(exhaustiveSearch(crabs.min, crabs.max, fuel(_, crabs)))
+  println(s"part1: ${exhaustiveSearch(crabs.min, crabs.max, fuel(_, crabs, distance))}")
+  println(s"part2: ${exhaustiveSearch(crabs.min, crabs.max, fuel(_, crabs, fancyDistance))}")
 }

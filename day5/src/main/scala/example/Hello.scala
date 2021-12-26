@@ -19,7 +19,10 @@ object Hello extends App {
       .toList
   }
 
-  println(makeSpace(parseData(Resource.getAsString("input.txt"))).result)
+  val data = parseData(Resource.getAsString("input.txt"))
+
+  println(s"part1: ${makeSpace(data.filter(v => v.startX == v.endX || v.startY == v.endY)).result}")
+  println(s"part2: ${makeSpace(data).result}")
 }
 
 final case class Space(locations: Vector[Vector[Int]]) { self =>

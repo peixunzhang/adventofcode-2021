@@ -3,16 +3,19 @@ package example
 import better.files.Resource
 
 object Hello extends App {
-  def countFish(input: List[Fish]): Long ={
+  def countFish(input: List[Fish], afterDays: Int): Long ={
     def makeFishes(days: Int, fishes: Fishes): Fishes= {
       if (days <= 0) fishes else makeFishes(days-1, fishes.step)
     }
-      makeFishes(256, Fishes.fromFish(input)).numberOfFishes
+    makeFishes(afterDays, Fishes.fromFish(input)).numberOfFishes
   }
   def parseData(input: String): List[Fish] = {
     input.split("\n").head.split(",").toList.map(str => Fish(str.toInt))
   }
-  println(countFish(parseData(Resource.getAsString("input.txt"))))
+
+  val data = parseData(Resource.getAsString("input.txt"))
+  println(s"part1: ${countFish(data, 80)}")
+  println(s"part2: ${countFish(data, 256)}")
 }
 
 final case class Fish(counter: Int) extends AnyVal {

@@ -3,7 +3,7 @@ package example
 import better.files.Resource
 
 object Hello extends App {
-  def loadData: String = {
+  def loadData(): String = {
     BigInt(Resource.getAsString("input.txt").stripLineEnd, 16).toString(2)
   }
 
@@ -67,7 +67,10 @@ object Hello extends App {
     }
   }
 
-  println(parseMessage(loadData)._1.eval)
+  val msg = parseMessage(loadData())._1
+
+  println(s"part1: ${msg.sumOfVersions}")
+  println(s"part2: ${msg.eval}")
 }
 
 final case class Message(version: Int, body: MessageBody) {
@@ -80,7 +83,7 @@ final case class Message(version: Int, body: MessageBody) {
   def eval: Option[Long] = {
     body match {
       case Literal(data) => Some(data)
-      case Operator(typeId, messages) => 
+      case Operator(typeId, messages) =>
         val result = messages.flatMap(_.eval)
         typeId match {
           case 0 => Some(result.sum)
@@ -89,15 +92,15 @@ final case class Message(version: Int, body: MessageBody) {
           case 3 => result.maxOption
           case 5 => result match {
             case x :: y :: Nil => if (x > y) Some(1) else Some(0)
-            case _ => None 
+            case _ => None
           }
           case 6 => result match {
             case x :: y :: Nil => if (x < y) Some(1) else Some(0)
-            case _ => None 
+            case _ => None
           }
            case 7 => result match {
             case x :: y :: Nil => if (x == y) Some(1) else Some(0)
-            case _ => None 
+            case _ => None
           }
           case _ => None
         }
@@ -106,9 +109,9 @@ final case class Message(version: Int, body: MessageBody) {
 }
 
 sealed trait MessageBody
-final case class Literal(data: Long) extends MessageBody 
+final case class Literal(data: Long) extends MessageBody
 
 final case class Operator(
     typeId: Int,
     messages: List[Message]
-) extends MessageBody 
+) extends MessageBody

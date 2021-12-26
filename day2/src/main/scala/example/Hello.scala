@@ -11,7 +11,20 @@ object Hello extends App {
       }
     }
 
-  def move(input: List[Instruction]): Int = {
+  def move1(input: List[Instruction]): Int = {
+    val (x, y) = input.foldLeft((0, 0)) {
+      case ((x, y), instruction) =>
+        instruction.direction match {
+          case Direction.Forward =>
+            (x + instruction.step, y)
+          case Direction.Down => (x, y + instruction.step)
+          case Direction.Up   => (x, y - instruction.step)
+        }
+    }
+    x * y
+  }
+
+  def move2(input: List[Instruction]): Int = {
     val (x, y, _) = input.foldLeft((0, 0, 0)) {
       case ((x, y, aim), instruction) =>
         instruction.direction match {
@@ -23,8 +36,9 @@ object Hello extends App {
     }
     x * y
   }
-
-  println(move(parseData(Resource.getAsString("input.txt"))))
+  val data = parseData(Resource.getAsString("input.txt"))
+  println(s"part1: ${move1(data)}")
+  println(s"part2: ${move2(data)}")
 }
 
 final case class Instruction(direction: Direction, step: Int)

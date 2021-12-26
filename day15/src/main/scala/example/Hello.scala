@@ -8,16 +8,24 @@ import cats.instances.list._
 import scala.collection.mutable
 
 object Hello extends App {
-  def parseData(input: String): Caves = {
-    def wrap(value: Int) =
-      ((value - 1) % 9) + 1
+  def parseData(input: String): Vector[Vector[Int]] = {
+    input.split("\n").toVector.map(_.toVector.map(_.asDigit))
+  }
 
-    val small = input.split("\n").toVector.map(_.toVector.map(_.asDigit))
-    val fullWidth = small.map(Vector.fill(5)(_).zipWithIndex.flatMap { case (original, i) => original.map(x => wrap(x + i)) } )
+  val data = parseData(Resource.getAsString("input.txt"))
+
+  val smallCaves = Caves(data, data.size, data.head.size)
+
+  val bigCaves = {
+    def wrap(value: Int) = ((value - 1) % 9) + 1
+
+    val fullWidth = data.map(Vector.fill(5)(_).zipWithIndex.flatMap { case (original, i) => original.map(x => wrap(x + i)) } )
     val full = Vector.fill(5)(fullWidth).zipWithIndex.flatMap { case (board, i) => board.map(_.map(x => wrap(x + i)))  }
-
     Caves(full, full.size, full.head.size)
   }
+
+  println(s"part1: ${smallCaves.cheapestPath(0, 0, smallCaves.rows - 1, smallCaves.cols - 1)}")
+  println(s"part2: ${bigCaves.cheapestPath(0, 0, bigCaves.rows - 1, bigCaves.cols - 1)}")
 
   // def cheapestPathHelperOriginal(
   //   start: Field,
@@ -27,13 +35,13 @@ object Hello extends App {
   //   cheapestSoFar: Option[Int] = None
   // ): Eval[Option[Int]] = {
   //   val lowerBoundRemainingCost = board.rows - 1 - start.row + board.cols - 1 - start.col
-  //   if (cheapestSoFar.fold(false)(_ <= acc + lowerBoundRemainingCost)) 
+  //   if (cheapestSoFar.fold(false)(_ <= acc + lowerBoundRemainingCost))
   //     Eval.now(cheapestSoFar)
   //   else if (start.row == board.rows - 1 && start.col == board.cols - 1) {
   //     println(acc)
   //     Eval.now(Some(acc))
   //   }
-  //   else 
+  //   else
   //     Eval.defer {
   //       board
   //         .neighnour(start.row, start.col)
@@ -55,12 +63,12 @@ object Hello extends App {
   // ): Eval[(Option[Int], Map[Field, Int])] = {
   //   costs.get(start).map(cost => Eval.now((Some(cost + acc), costs))) getOrElse {
   //     val lowerBoundRemainingCost = board.rows - 1 - start.row + board.cols - 1 - start.col
-  //     if (cheapestSoFar.fold(false)(_ <= acc + lowerBoundRemainingCost)) 
+  //     if (cheapestSoFar.fold(false)(_ <= acc + lowerBoundRemainingCost))
   //       Eval.now((None, costs))
   //     else if (start.row == board.rows - 1 && start.col == board.cols - 1) {
   //       Eval.now((Some(acc), costs))
   //     }
-  //     else 
+  //     else
   //       Eval.defer {
   //         board
   //           .neighnour(start.row, start.col)
@@ -68,15 +76,12 @@ object Hello extends App {
   //           .foldLeftM((cheapestSoFar, costs)) { case ((cheapestSoFar, costs), next) =>
   //             cheapestPathHelper(next, board, went + start, acc + next.value, cheapestSoFar, costs)
   //               .map { case (cheaperCost, costs) =>
-  //                 (cheaperCost.orElse(cheapestSoFar), cheaperCost.fold(costs)(c => costs + (next -> (c - acc))))  
+  //                 (cheaperCost.orElse(cheapestSoFar), cheaperCost.fold(costs)(c => costs + (next -> (c - acc))))
   //               }
   //           }
   //       }
   //     }
   // }
-
-  val board = parseData(Resource.getAsString("input.txt"))
-  println(board.cheapestPath(0, 0, board.rows - 1, board.cols - 1))
 }
 
 final case class Caves(board: Vector[Vector[Int]], rows: Int, cols: Int) {

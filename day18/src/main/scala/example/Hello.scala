@@ -31,8 +31,8 @@ object Hello extends App {
   val biggest = combination.map { case (left, right) =>
     left.add(right).magnitude
   }.maxOption
-  // println(fish.reduceLeft(_.add(_)).magnitude)
-  println(biggest)
+  println(s"part1: ${fish.reduceLeft(_.add(_)).magnitude}")
+  println(s"part2: ${biggest}")
 }
 
 sealed trait Fish { self =>

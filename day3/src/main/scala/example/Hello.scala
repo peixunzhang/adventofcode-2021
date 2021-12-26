@@ -15,7 +15,7 @@ object Hello extends App {
     input match {
       case List(result) => Integer.parseInt(result.mkString, 2)
       case Nil => throw new IllegalStateException()
-      case _ => 
+      case _ =>
         val rowCount = makeCount(input)
         val num = f(rowCount.values(col))
         val newInput = input.filter(_(col) == num)
@@ -24,9 +24,11 @@ object Hello extends App {
   }
   val data = parseData(Resource.getAsString("input.txt"))
 
-  println(getNum(data, 0, _.mostCount) * getNum(data, 0, _.leastCount))
-  
-  //println(makeCount(parseData(Resource.getAsString("input.txt"))).finalNum)
+  val part1 = makeCount(data).finalNum
+  val part2 = getNum(data, 0, _.mostCount) * getNum(data, 0, _.leastCount)
+
+  println(s"part1: $part1")
+  println(s"part2: $part2")
 }
 
 final case class Count (ones: Int, zeros: Int) { self =>
@@ -53,7 +55,7 @@ object Count {
 }
 
 final case class RowCounts(values: List[Count]) {
-  def addRow(other: List[Int]): RowCounts = 
+  def addRow(other: List[Int]): RowCounts =
     RowCounts {
       values.zipAll(other, Count.empty, 2).map{
         case (count, num) => count.add(num)
@@ -69,4 +71,4 @@ final case class RowCounts(values: List[Count]) {
   object RowCounts{
     val empty: RowCounts = RowCounts(Nil)
   }
-  
+
